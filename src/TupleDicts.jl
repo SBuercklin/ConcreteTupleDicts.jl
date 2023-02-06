@@ -42,5 +42,25 @@ function Base.values(td::TupleDict)
     mapreduce(values, union, td.dicts)
 end
 
+function Base.iterate(td::TupleDict, st = (0, 1, 0))
+    # i is the index of the Dict in the tuple 
+    # n is the number of the key being iterated over
+    # dict_state is the state of the previous dict iteration
+    i, n, dict_state = st
+    n > length(td) && return nothing
+
+    dict_lims = cumsum(
+        ntuple(j -> length(keys(td.dicts[j])), length(td.dicts))
+        )
+    idx = findfirst(>=(n), dict_lims)
+
+    d = td.dicts[idx]
+
+    rval, new_state = idx == i ? iterate(d, dict_state) : iterate(d)
+
+    return (rval, (idx, n + 1, new_state))
+end
+
+Base.length(td::TupleDict) = length(keys(td))
 
 end # module TupleDict
