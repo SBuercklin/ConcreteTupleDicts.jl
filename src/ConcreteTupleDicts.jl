@@ -1,4 +1,4 @@
-module TupleDicts
+module ConcreteTupleDicts
 
 using Base
 
@@ -44,18 +44,9 @@ function TupleDict(td)
                 )
             )
     end
-
-    valtypes = unique(valtype.(td))
-
-    reduced_dicts = map(valtypes) do v
-        idxs = findall(isequal(v), valtype.(td))
-        keytypes = keytype.(td[idxs])
-        merged_dicts = mapreduce(d -> convert(Dict{Union{keytypes...}, v}, d), merge, td[idxs])
-
-        return merged_dicts
-    end
-
-    tuple_dicts = Tuple(reduced_dicts)
+    valtypes = map(valtype, td)
+    u_valtypes = t_unique(valtypes)
+    tuple_dicts = map(Base.Fix2(map_valtypes, td), u_valtypes)
 
     if length(tuple_dicts) == 1
         return only(tuple_dicts) # That's just a regular Dict wrapped in a Tuple
@@ -63,6 +54,21 @@ function TupleDict(td)
         TupleDict{typeof(tuple_dicts)}(tuple_dicts)
     end
 
+end
+
+function map_valtypes(v, td)
+        ds = filter(isequal(v) ∘ valtype, td)
+        keytypes = map(keytype, ds)
+        ktype = Union{keytypes...}
+        vtype = v
+        converted_dicts = map(d -> convert_dict(d, ktype, vtype), ds)
+        merged_dicts = merge(converted_dicts...)
+
+        return merged_dicts
+end
+
+function convert_dict(d, ktype, vtype)
+    return convert(Dict{ktype, vtype}, d)
 end
 
 function Base.getindex(_d::TupleDict, k)
@@ -152,5 +158,15 @@ function _find_dict(_d::TupleDict, ::T) where {T}
 
     return _d.dicts[d_idx]
 end
+
+
+# Tuple unique over NTuple{N, Datatype}
+t_unique(x::Type{T}) where T = (x,)
+
+function t_unique(y::Type{T}, x::Type...) where T
+    ys = t_unique(x...)
+    y in ys ? ys : (y, ys...)
+end
+t_unique(x::Tuple{Vararg{<:Type}}) = t_unique(x...)
 
 end # module TupleDict

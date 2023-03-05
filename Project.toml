@@ -1,4 +1,4 @@
-name = "TupleDicts"
+name = "ConcreteTupleDicts"
 uuid = "4bc05ef9-1504-4504-bb40-64ac90779463"
 authors = ["Sam Buercklin <sam.buercklin@gmail.com>"]
 version = "0.1.0"
