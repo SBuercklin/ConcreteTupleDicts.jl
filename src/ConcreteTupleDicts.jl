@@ -29,8 +29,9 @@ end
 
 """
     TupleDict(td)
+    TupleDict(d1, d2...)
 
-Constructs a `TupleDict` from an iterable `td` of `Dict`s. 
+Constructs a `TupleDict` from an iterable `td` of `Dict`s, or a sequence of `Dict`s `d1, d2, d3...`. 
 
 `Dict`s which share a `valtype` are merged such that their keys are stored in the same `Dict`. `Dict`s
     of distinct `valtype`s are left as separate `Dict`s in order to make `getkey` type inferrable.
@@ -50,7 +51,7 @@ function TupleDict(td)
     if !all(_concrete_or_union, td)
         throw(
             error(
-                "All input `Dict` keytypes to a `TupleDict` must be concrete types, or union of concrete types"
+                "All input Dict keytypes to a TupleDict must be concrete types, or union of concrete types"
                 )
             )
     end
@@ -58,7 +59,7 @@ function TupleDict(td)
     if _duplicated_key_types(td)
         throw(
             error(
-                "All input `Dict` keytypes to a `TupleDict` must be unique. Duplicate keys will cause ambiguity"
+                "All input Dict keytypes to a TupleDict must be unique. Duplicate keys will cause ambiguity"
                 )
             )
     end
@@ -78,6 +79,10 @@ function TupleDict(td)
     end
 
 end
+
+# If we pass in a single dictionary, just return the dictionary
+TupleDict(d::Dict) = d
+TupleDict(a, b...) = TupleDict((a, b...))
 
 function map_valtypes(v, td)
         ds = filter(isequal(v) ∘ valtype, td)
@@ -134,15 +139,9 @@ Base.length(td::TupleDict) = length(keys(td))
     Utilities, helpers
 =#
 
-function _concrete_or_union(::AbstractDict{TK, TV}) where {TK, TV}
-    if isconcretetype(TK) 
-        return true
-    elseif TK isa Union
-        return all(isconcretetype, fieldnames(TK))
-    else
-        return false
-    end
-end
+_concrete_or_union(::AbstractDict{TK, TV}) where {TK, TV} = _concrete_or_union(TK)
+_concrete_or_union(T::DataType) = isconcretetype(T)
+_concrete_or_union(t::Union) = _concrete_or_union(t.a) && _concrete_or_union(t.b)
 
 function _duplicated_key_types(ds)
     state = iterate(ds)
