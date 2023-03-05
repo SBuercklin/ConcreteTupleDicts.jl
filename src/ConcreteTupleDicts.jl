@@ -13,7 +13,7 @@ A `Dict`-like structure which maps keys of various types to values of various ty
 
 With a traditional `Dict`, keys of distinct types mapping to values of distinct types
     cannot lead to type stable retrieval. However, a `TupleDict` is type stable, 
-    even when the `valtype` for each `keytype` is different. 
+    even when the `valtype` for each `keytype` is different.
 """
 struct TupleDict{TD <: Tuple, K, V} <: AbstractDict{K, V}
     dicts::TD
@@ -27,6 +27,24 @@ struct TupleDict{TD <: Tuple, K, V} <: AbstractDict{K, V}
     end
 end
 
+"""
+    TupleDict(td)
+
+Constructs a `TupleDict` from an iterable `td` of `Dict`s. 
+
+`Dict`s which share a `valtype` are merged such that their keys are stored in the same `Dict`. `Dict`s
+    of distinct `valtype`s are left as separate `Dict`s in order to make `getkey` type inferrable.
+
+Note that all input `Dict`s must satisfy the following constraints:
+
+    1. All `Dict`s must have concrete `keytype`, or a `keytype` which is a `Union{...}` of concrete types
+    2. You cannot pass in `Dict`s whose `keytype`s overlap
+
+The first requirement helps us avoid amiguities where `Dict`s over abstract types may make identifying
+    the correct key ambiguous (e.g. two `Dict`s, one with `Number` and one with `Float64` keys).
+
+The second requirement ensures/requires that all keys of a given type map to only one `valtype`.
+"""
 function TupleDict(td)
     # Only want to work with concrete types to avoid ambgiuities in the Dict retrieval
     if !all(_concrete_or_union, td)
@@ -44,6 +62,11 @@ function TupleDict(td)
                 )
             )
     end
+
+    # NOTE:
+    # On Julia 1.9 this appears to be type-unstable. It looks like this the valtypes from `t_unique` aren't
+    #   constant propagating to the `map_valtypes` line. `map_valtypes` seems to infer on its own, so we need 
+    #   to do some extra work making sure that we can constant-propagate the valtypes into `map_valtypes`
     valtypes = map(valtype, td)
     u_valtypes = t_unique(valtypes)
     tuple_dicts = map(Base.Fix2(map_valtypes, td), u_valtypes)
@@ -161,6 +184,7 @@ end
 
 
 # Tuple unique over NTuple{N, Datatype}
+# Thanks to Sukera/Valentin and mcabbott for help with this implementation
 t_unique(x::Type{T}) where T = (x,)
 
 function t_unique(y::Type{T}, x::Type...) where T
