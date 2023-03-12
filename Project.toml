@@ -1,10 +1,10 @@
 name = "ConcreteTupleDicts"
 uuid = "4bc05ef9-1504-4504-bb40-64ac90779463"
 authors = ["Sam Buercklin <sam.buercklin@gmail.com>"]
-version = "0.1.0"
+version = "0.1.1"
 
 [compat]
-julia = "1.8"
+julia = "1.6"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
